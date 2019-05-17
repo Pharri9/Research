@@ -1,0 +1,98 @@
+---
+title: "1982 Census"
+author: "Patrick Harris"
+date: "March 22, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+## Loads data
+```{r setup, include=FALSE}
+library(ipumsr)
+library(tidyverse)
+ddi <- read_ipums_ddi("ipumsi_00005.xml")
+data <- read_ipums_micro(ddi)
+morocco <- as.data.frame(data)
+```
+## Converts from labelled to factor
+```{r}
+morocco$AGE <- as.numeric(morocco$AGE)
+morocco$YRSCHOOL <- as.numeric(morocco$YRSCHOOL)
+morocco[sapply(morocco, is.labelled)] <- lapply(morocco[sapply(morocco, is.labelled)], as.factor)
+```
+
+## Summarizes data
+```{r}
+## Makes sure there are no missing values
+sum(is.na(morocco$AGE))
+sum(is.na(morocco$YRSCHOOL))
+
+# Handles some primary education
+morocco$YRSCHOOL[morocco$YRSCHOOL == 91] <- 4
+# Handles some secondary education
+morocco$YRSCHOOL[morocco$YRSCHOOL == 93] <- 9
+# Handles some teritary education 
+morocco$YRSCHOOL[morocco$YRSCHOOL == 94] <- 13
+# Handles missing data 
+morocco$COUNTRY[morocco$YRSCHOOL == 98] <- NA
+
+#Summarizes
+ agePeopleEduc<- morocco %>% 
+  group_by(GEO2_MA) %>%
+  summarise( 
+    
+    ## Population
+    countPop = n() *20, 
+    ## Age
+    meanAge = mean(AGE),
+    ## School
+    meanSchool = mean(YRSCHOOL, na.rm = TRUE)
+  )
+
+ ## Creates CSV
+## write.csv(agePeopleEduc, file = "1982CensusFinal.csv")
+```
+```{r}
+
+## Not in Universe
+morocco$LABFORCE[morocco$LABFORCE == 9] <- NA
+## Not in Universe
+morocco$CLASSWK[morocco$CLASSWK == 0] <- NA
+## Unknown or Missing 
+morocco$CLASSWK[morocco$CLASSWK == 9] <- NA
+## Not in Universe 
+morocco$LIT[morocco$LIT == 0] <- NA
+
+
+ labWorkLit <- morocco %>%
+  group_by(GEO2_MA) %>%
+  summarise(
+    countPop = n() *20,
+    
+    ## LABORFORCE
+    InLaborForce = sum((LABFORCE == "2"), na.rm = TRUE),
+    OutOfLaborForce = sum((LABFORCE == "1"), na.rm = TRUE),
+    PropIn = InLaborForce/ (InLaborForce + OutOfLaborForce),
+    PropOut = OutOfLaborForce / (InLaborForce + OutOfLaborForce),
+    
+    ## Class Worker 
+    SelfEmployed  = sum((CLASSWK == "1"), na.rm = TRUE),
+    Waged = sum((CLASSWK == "2"), na.rm = TRUE),
+    Unpaid = sum((CLASSWK == "3"), na.rm = TRUE),
+    PropSelfEmployed = SelfEmployed / (SelfEmployed + Waged + Unpaid),
+    PropWaged = Waged / (SelfEmployed + Waged + Unpaid),
+    PropUnpaid = Unpaid / (SelfEmployed + Waged + Unpaid),
+    
+    ##Literacy
+    Lit = sum((LIT == "2"), na.rm = TRUE),
+    NotLit = sum((LIT == "1"), na.rm = TRUE),
+    PropLit = Lit / (Lit + NotLit),
+    PropNotLit = NotLit / (Lit + NotLit)
+  )
+ ## Creates CSV
+## write.csv(labWorkLit, file = "1982CensusFinal2.csv")
+
+```
+
