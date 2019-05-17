@@ -1,0 +1,83 @@
+---
+title: "Research"
+author: "Patrick Harris"
+date: "May 17, 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Installs needed packages
+```{r}
+if (!require("rtweet")) {
+  install.packages("rtweet")
+  library("rtweet")
+}
+```
+
+## Connects to Twitter 
+```{r}
+api_key <- api_key
+api_secret <- api_secret
+token <- token
+token_secret <- token_secret
+oauth <- create_token(consumer_key = api_key, consumer_secret = api_secret, access_token = token, access_secret = token_secret )
+```
+
+## The function that reads the screen names from the console 
+```{r}
+readname <- function()
+{ 
+  n <- as.integer(readline(prompt = "Enter the number of Users:  "))
+  screenName <- vector(mode = "character", n)
+   for(i in 1:n){
+     screenName[i] <- readline(prompt = "enter the screen name without spaces before or after: ")
+   }
+
+  return(screenName)
+}
+
+```
+
+
+## Utilizes the function that reads the screen names from the console (may need to expand console)
+```{r}
+names <- (readname())
+```
+```
+## gets information on the followers
+```{r}
+
+## an Empty list for the twitter follower IDs
+user_complete <- list()
+
+## loops for each 
+for (i in 1:length(names)){
+
+  ## gets the follower IDs of name[i]
+  user <- get_followers(names[i], n = 150)
+  user$University <- names[i]
+  
+  ## gets information on the followers
+  user_info <- lookup_users(user$user_id)
+  user_info$University <- names[i]
+  
+  ## cleans data
+  user_info <- subset(user_info, select=c("location", "University", "screen_name"))
+  user_info<-subset(user_info, location!="")
+  
+  ## ads follower information (dataframe) to user_complete (list)
+  user_complete[[i]] <- user_info
+
+}
+```
+
+
+## Writes CSV files titled from the screename entered above (screenname_followers.csv)
+```{r}
+lapply(1:length(user_complete), function(i) write.csv(user_complete[[i]], 
+                                      file = paste(names[i], sep ="", "_followers.csv")))
+```
+
+
+
